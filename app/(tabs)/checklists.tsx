@@ -12,66 +12,39 @@ import {
   Modal,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius, BorderWidth, Shadow } from '@/constants';
 import { FloatingActionButton, Input, Button } from '@/components/ui';
 import { ChecklistCard } from '@/components/checklist';
-
-// Temporary mock data - will be replaced with actual data management
-interface Checklist {
-  id: string;
-  title: string;
-  items: { id: string; text: string; completed: boolean }[];
-}
+import { useChecklists } from '@/contexts/ChecklistContext';
+import type { Checklist } from '@/services/storage';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [checklists, setChecklists] = useState<Checklist[]>([
-    {
-      id: '1',
-      title: '일본 여행 준비물',
-      items: [
-        { id: '1-1', text: '여권', completed: true },
-        { id: '1-2', text: '항공권', completed: true },
-        { id: '1-3', text: '호텔 예약 확인증', completed: false },
-        { id: '1-4', text: '여행자 보험', completed: false },
-      ],
-    },
-    {
-      id: '2',
-      title: '이사 준비',
-      items: [
-        { id: '2-1', text: '이사 업체 예약', completed: true },
-        { id: '2-2', text: '박스 구매', completed: false },
-        { id: '2-3', text: '주소 변경', completed: false },
-      ],
-    },
-  ]);
+  const { checklists, loading, createChecklist, deleteChecklist: deleteChecklistFromContext } = useChecklists();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
 
-  const handleCreateChecklist = () => {
+  const handleCreateChecklist = async () => {
     const trimmedTitle = newChecklistTitle.trim();
     if (!trimmedTitle) {
       Alert.alert('오류', '체크리스트 제목을 입력해주세요.');
       return;
     }
 
-    const newChecklist: Checklist = {
-      id: Date.now().toString(),
-      title: trimmedTitle,
-      items: [],
-    };
-
-    setChecklists([newChecklist, ...checklists]);
-    setNewChecklistTitle('');
-    setShowCreateModal(false);
-
-    // Navigate to detail screen
-    // router.push(`/checklist/${newChecklist.id}`);
+    const newChecklist = await createChecklist(trimmedTitle);
+    if (newChecklist) {
+      setNewChecklistTitle('');
+      setShowCreateModal(false);
+      // Navigate to detail screen
+      router.push(`/checklist/${newChecklist.id}`);
+    } else {
+      Alert.alert('오류', '체크리스트 생성에 실패했습니다.');
+    }
   };
 
   const handleDeleteChecklist = (id: string) => {
@@ -83,8 +56,11 @@ export default function HomeScreen() {
         {
           text: '삭제',
           style: 'destructive',
-          onPress: () => {
-            setChecklists(checklists.filter((item) => item.id !== id));
+          onPress: async () => {
+            const success = await deleteChecklistFromContext(id);
+            if (!success) {
+              Alert.alert('오류', '체크리스트 삭제에 실패했습니다.');
+            }
           },
         },
       ]
@@ -101,14 +77,23 @@ export default function HomeScreen() {
         totalItems={item.items.length}
         completedItems={completedCount}
         onPress={() => {
-          // Navigate to detail screen
-          // router.push(`/checklist/${item.id}`);
-          Alert.alert('알림', '상세 화면으로 이동 (구현 예정)');
+          router.push(`/checklist/${item.id}`);
         }}
         onDelete={() => handleDeleteChecklist(item.id)}
       />
     );
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary.main} />
+          <Text style={styles.loadingText}>불러오는 중...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -271,6 +256,16 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.text.tertiary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.text.secondary,
   },
   aiFab: {
     bottom: Spacing['3xl'] + 64 + Spacing.md,

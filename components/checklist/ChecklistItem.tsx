@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, BorderRadius, BorderWidth } from '@/constants';
+import { Colors, Typography, Spacing, BorderRadius, BorderWidth, Shadow } from '@/constants';
 import { Checkbox } from '@/components/ui';
 
 interface ChecklistItemProps {
@@ -16,6 +16,9 @@ interface ChecklistItemProps {
   onToggle: () => void;
   onUpdate: (newText: string) => void;
   onDelete: () => void;
+  deleteMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 export default function ChecklistItem({
@@ -24,6 +27,9 @@ export default function ChecklistItem({
   onToggle,
   onUpdate,
   onDelete,
+  deleteMode = false,
+  isSelected = false,
+  onSelect,
 }: ChecklistItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
@@ -43,26 +49,34 @@ export default function ChecklistItem({
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      '항목 삭제',
-      '이 항목을 삭제하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '삭제', style: 'destructive', onPress: onDelete },
-      ]
-    );
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditText(text);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Checkbox */}
+    <Pressable
+      style={[
+        styles.container,
+        deleteMode && isSelected && styles.containerSelected,
+      ]}
+      onPress={deleteMode ? onSelect : undefined}
+      disabled={!deleteMode}
+    >
+      {/* Selection Checkbox (Delete Mode) or Regular Checkbox */}
       <View style={styles.checkboxContainer}>
-        <Checkbox
-          checked={completed}
-          onChange={onToggle}
-          disabled={isEditing}
-        />
+        {deleteMode ? (
+          <Checkbox
+            checked={isSelected}
+            onChange={onSelect || (() => {})}
+          />
+        ) : (
+          <Checkbox
+            checked={completed}
+            onChange={onToggle}
+            disabled={isEditing}
+          />
+        )}
       </View>
 
       {/* Text Content */}
@@ -95,31 +109,28 @@ export default function ChecklistItem({
         </View>
       ) : (
         <View style={styles.textContainer}>
-          <Pressable
-            style={styles.textPressable}
-            onPress={() => setIsEditing(true)}
+          <Text
+            style={[
+              styles.text,
+              completed && styles.textCompleted,
+            ]}
           >
-            <Text
-              style={[
-                styles.text,
-                completed && styles.textCompleted,
-              ]}
-            >
-              {text}
-            </Text>
-          </Pressable>
+            {text}
+          </Text>
 
-          {/* Delete Button */}
-          <Pressable
-            style={styles.deleteButton}
-            onPress={handleDelete}
-            hitSlop={8}
-          >
-            <Ionicons name="trash-outline" size={18} color={Colors.semantic.error} />
-          </Pressable>
+          {/* Edit Button (only when not in delete mode) */}
+          {!deleteMode && (
+            <Pressable
+              style={styles.editButton}
+              onPress={handleEdit}
+              hitSlop={8}
+            >
+              <Ionicons name="pencil-outline" size={18} color={Colors.primary.main} />
+            </Pressable>
+          )}
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -127,10 +138,19 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: BorderWidth.thin,
-    borderBottomColor: Colors.border.light,
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
     gap: Spacing.md,
+    ...Shadow.sm,
+    borderWidth: BorderWidth.thin,
+    borderColor: Colors.border.light,
+  },
+  containerSelected: {
+    backgroundColor: Colors.primary.light,
+    borderColor: Colors.primary.main,
+    borderWidth: 2,
   },
   checkboxContainer: {
     paddingTop: 2,
@@ -141,9 +161,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
-  textPressable: {
-    flex: 1,
-  },
   text: {
     ...Typography.body,
     color: Colors.text.primary,
@@ -153,7 +170,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     textDecorationLine: 'line-through',
   },
-  deleteButton: {
+  editButton: {
     padding: Spacing.xs,
   },
   editContainer: {
