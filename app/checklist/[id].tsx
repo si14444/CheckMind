@@ -175,7 +175,7 @@ export default function ChecklistDetailScreen() {
         ) : (
           <FlatList
             data={checklist.items}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <ChecklistItem
                 id={item.id}
                 text={item.text}
@@ -186,6 +186,7 @@ export default function ChecklistDetailScreen() {
                 deleteMode={deleteMode}
                 isSelected={selectedItems.has(item.id)}
                 onSelect={() => toggleItemSelection(item.id)}
+                index={index}
               />
             )}
             keyExtractor={(item) => item.id}

@@ -19,6 +19,7 @@ interface ChecklistItemProps {
   deleteMode?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
+  index?: number;
 }
 
 export default function ChecklistItem({
@@ -30,6 +31,7 @@ export default function ChecklistItem({
   deleteMode = false,
   isSelected = false,
   onSelect,
+  index,
 }: ChecklistItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
@@ -54,6 +56,20 @@ export default function ChecklistItem({
     setEditText(text);
   };
 
+  // Color palette for item indicators
+  const colors = [
+    '#FF6B6B', // Red
+    '#4ECDC4', // Teal
+    '#45B7D1', // Blue
+    '#FFA07A', // Light Salmon
+    '#98D8C8', // Mint
+    '#F7DC6F', // Yellow
+    '#BB8FCE', // Purple
+    '#85C1E2', // Sky Blue
+  ];
+
+  const indicatorColor = index !== undefined ? colors[index % colors.length] : colors[0];
+
   return (
     <Pressable
       style={[
@@ -63,6 +79,18 @@ export default function ChecklistItem({
       onPress={deleteMode ? onSelect : undefined}
       disabled={!deleteMode}
     >
+      {/* Color Indicator */}
+      <View style={[styles.colorIndicator, { backgroundColor: indicatorColor }]} />
+
+      {/* Item Number Badge */}
+      {index !== undefined && !deleteMode && (
+        <View style={[styles.numberBadge, { borderColor: indicatorColor }]}>
+          <Text style={[styles.numberText, { color: indicatorColor }]}>
+            {index + 1}
+          </Text>
+        </View>
+      )}
+
       {/* Selection Checkbox (Delete Mode) or Regular Checkbox */}
       <View style={styles.checkboxContainer}>
         {deleteMode ? (
@@ -141,16 +169,41 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
+    paddingLeft: Spacing.xs,
     marginBottom: Spacing.md,
     gap: Spacing.md,
     ...Shadow.sm,
     borderWidth: BorderWidth.thin,
     borderColor: Colors.border.light,
+    position: 'relative',
+    overflow: 'hidden',
   },
   containerSelected: {
     backgroundColor: Colors.primary.light,
     borderColor: Colors.primary.main,
     borderWidth: 2,
+  },
+  colorIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  numberBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background.primary,
+    marginLeft: Spacing.sm,
+  },
+  numberText: {
+    ...Typography.bodySmall,
+    fontWeight: '700',
+    fontSize: 13,
   },
   checkboxContainer: {
     paddingTop: 2,
